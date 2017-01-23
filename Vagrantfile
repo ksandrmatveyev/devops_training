@@ -1,11 +1,3 @@
-$restart_n = <<SCRIPT
-sudo systemctl restart network
-SCRIPT
-
-$dis_firewalld = <<SCRIPT
-sudo systemctl stop firewalld && sudo systemctl disable firewalld
-SCRIPT
-
 $wrk_prop = <<SCRIPT
 echo 'worker.list=loadbalancer,status
 worker.status.type=status
@@ -32,6 +24,8 @@ SCRIPT
 
 Vagrant.configure("2") do |config|
 	config.vm.box = "bertvv/centos72"
+	config.vm.provision "restart_network", run: "always", type: "shell", inline: "sudo systemctl restart network"
+	config.vm.provision "disable_firewall", type: "shell", inline: "sudo systemctl stop firewalld && sudo systemctl disable firewalld"
 	
 	config.vm.define "apache" do |apache|
 		apache.vm.hostname="apache"
@@ -39,10 +33,8 @@ Vagrant.configure("2") do |config|
 		apache.vm.network "forwarded_port", guest: 8009, host: 8109
 		apache.vm.network "forwarded_port", guest: 22, host: 2201, id: "ssh"
 		apache.vm.network "private_network", ip: "172.20.20.21"
-		apache.vm.provision "restart_network", run: "always", type: "shell", inline: $restart_n
 		apache.vm.provision "get_httpd", type: "shell", inline: "sudo yum install httpd -y"
 		apache.vm.provision "start_restart", type: "shell", inline: "sudo systemctl start httpd && sudo systemctl enable httpd"
-		apache.vm.provision "disable_firewall", type: "shell", inline: $dis_firewalld
 		apache.vm.provision "copy_modjk", type: "shell", inline: "sudo cp /vagrant/mod_jk.so /etc/httpd/modules"
 		apache.vm.provision "create_workproperties", type: "shell", inline: $wrk_prop
 		apache.vm.provision "edit_httpdconf", type: "shell", inline: $httpd_conf
@@ -56,12 +48,9 @@ Vagrant.configure("2") do |config|
 		tomcat1.vm.network "forwarded_port", guest: 8009, host: 8209
 		tomcat1.vm.network "forwarded_port", guest: 22, host: 2202, id: "ssh"
 		tomcat1.vm.network "private_network", ip: "172.20.20.22"
-		tomcat1.vm.provision "restart_network", run: "always", type: "shell", inline: $restart_n
-		
 		tomcat1.vm.provision "get_jre", type: "shell", inline: "sudo yum install java-1.8.0-openjdk -y"
 		tomcat1.vm.provision "get_tomcat", type: "shell", inline: "sudo yum install tomcat tomcat-webapps tomcat-admin-webapps -y"
 		tomcat1.vm.provision "start_restart", type: "shell", inline: "sudo systemctl start tomcat && sudo systemctl enable tomcat"
-		tomcat1.vm.provision "disable_firewall", type: "shell", inline: $dis_firewalld
 		tomcat1.vm.provision "create_indexhtml", type: "shell", inline:	"sudo mkdir /usr/share/tomcat/webapps/testapp && sudo echo tomcat1 > /usr/share/tomcat/webapps/testapp/index.html"
 		
 	end
@@ -72,11 +61,9 @@ Vagrant.configure("2") do |config|
 		tomcat2.vm.network "forwarded_port", guest: 8009, host: 8309
 		tomcat2.vm.network "forwarded_port", guest: 22, host: 2203, id: "ssh"
 		tomcat2.vm.network "private_network", ip: "172.20.20.23"
-		tomcat2.vm.provision "restart_network", run: "always", type: "shell", inline: $restart_n
 		tomcat2.vm.provision "get_jre", type: "shell", inline: "sudo yum install java-1.8.0-openjdk -y"
 		tomcat2.vm.provision "get_tomcat", type: "shell", inline: "sudo yum install tomcat tomcat-webapps tomcat-admin-webapps -y"
 		tomcat2.vm.provision "start_restart", type: "shell", inline: "sudo systemctl start tomcat && sudo systemctl enable tomcat"
-		tomcat2.vm.provision "disable_firewall", type: "shell", inline: $dis_firewalld
 		tomcat2.vm.provision "create_indexhtml", type: "shell", inline:	"sudo mkdir /usr/share/tomcat/webapps/testapp && sudo echo tomcat2 > /usr/share/tomcat/webapps/testapp/index.html"
 		
 	end
