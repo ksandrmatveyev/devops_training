@@ -7,9 +7,10 @@ sudo systemctl stop firewalld && sudo systemctl disable firewalld
 SCRIPT
 
 $wrk_prop = <<SCRIPT
-echo 'worker.list=lb
-worker.type=lb
-worker.balance_workers=tomcat1,tomcat2
+echo 'worker.list=loadbalancer,status
+worker.status.type=status
+worker.loadbalancer.type=lb
+worker.loadbalancer.balance_workers=tomcat1,tomcat2
 worker.tomcat1.host=172.20.20.22
 worker.tomcat1.port=8009
 worker.tomcat1.type=ajp13
@@ -24,7 +25,8 @@ JkWorkersFile conf/workers.properties
 JkShmFile /tmp/shm
 JkLogFile logs/mod_jk.log
 JkLogLevel info
-JkMount /testapp* lb' >> /etc/httpd/conf/httpd.conf
+JkMount /testapp* loadbalancer
+JkMount /status* status' >> /etc/httpd/conf/httpd.conf
 SCRIPT
 
 
