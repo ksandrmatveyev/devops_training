@@ -5,14 +5,15 @@ def getVersion() {
         props.load(new StringReader(propsString))
         props.get("version")
     }
-def depTom(inst,adr,versi){
+def vers
+def depTom(inst,adr,pvers){
     withCredentials([usernamePassword(credentialsId: '42921b32-7177-4d87-af6b-282d6d41aa6c', passwordVariable: 'TOMCAT_PASSWORD', usernameVariable: 'TOMCAT_USERNAME')]) {
         httpRequest httpMode: 'POST', url: "http://172.20.20.33/jkstatus/?cmd=update&from=list&w=loadbalancer&sw=${inst}&vwa=1"
-        sh "curl \"http://172.20.20.32:8081/nexus/content/repositories/training/task3/${versi}/task3.war\" | curl -T - -u $TOMCAT_USERNAME:$TOMCAT_PASSWORD \"http://${adr}:8080/manager/text/deploy?path=/testapp/task3&update=true\""
+        sh "curl \"http://172.20.20.32:8081/nexus/content/repositories/training/task3/${pvers}/task3.war\" | curl -T - -u $TOMCAT_USERNAME:$TOMCAT_PASSWORD \"http://${adr}:8080/manager/text/deploy?path=/testapp/task3&update=true\""
         sleep 60
-        def tom1 = sh(returnStdout: true, script: "curl -s http://${adr}:8080/testapp/task3/ | grep -Po 'version=\\K(\\w+).(\\w+).(\\w+)'").trim()
-        echo "tomcat1=$tom1"
-        if(versi==tom1){
+        def pagecontent = sh(returnStdout: true, script: "curl -s http://${adr}:8080/testapp/task3/")
+        echo "tomcat1=$pagecontent"
+        if(pagecontent.contains(pvers)){
             echo "versions are the same"
             httpRequest httpMode: 'POST', url: "http://172.20.20.33/jkstatus/?cmd=update&from=list&w=loadbalancer&sw=${inst}&vwa=0"
         }
@@ -25,19 +26,19 @@ def depTom(inst,adr,versi){
 node{
     deleteDir()
     stage('cloneRepo'){
-        git branch: 'task3', credentialsId: '2e21e2cc-a7b2-4657-85d6-7f867b231080', url: 'https://github.com/ksandrmatveyev/devops_training.git'
+        git branch: 'task3', credentialsId: '2e21e2cc-a7b2-4657-85d6-7f867b231080', url: 'https://github.com/ksandrmatveyev/gradle-training.git'
     }
     stage('buildIncVersion'){
         sh('chmod +x gradlew && ./gradlew setBuildVersion && ./gradlew build')
     }
-	def vers = getVersion()
+	vers = getVersion()
 	println vers
 	stage('pushChanges'){
         withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: '2e21e2cc-a7b2-4657-85d6-7f867b231080', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD']]) {
             sh('git config --global user.name "Aleksandr Matveyev"')
             sh('git config --global user.email ksandr.matveyev@gmail.com')
             sh("git commit -am \"from Jenkins. Build - ${vers}\"")
-            sh('git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/ksandrmatveyev/devops_training.git task3')
+            sh('git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/ksandrmatveyev/gradle-training.git task3')
         }
     }
     stage('publishToNexus'){
