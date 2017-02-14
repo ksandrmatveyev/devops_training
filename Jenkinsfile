@@ -48,8 +48,7 @@ node('master'){
         }    
     }
     stage('build_publish'){
-        sh("docker build --build-arg v_build=${vers} -t task4:${vers} .")
-        sh("docker tag task4:${vers} ${docker_reg}/task4:${vers}")
+        sh("docker build --build-arg v_build=${vers} -t ${docker_reg}/task4:${vers} .")
         sh("docker push ${docker_reg}/task4:${vers}")
         
     }
@@ -59,7 +58,7 @@ node('docker_slave'){
         echo "slave"
         sh("docker run -d --restart=always --name=task4c -p 8080:8080 ${docker_reg}/task4:${vers}")
         sleep 60
-        depTom("${tomcat_cont}","${vers}")
+        depTom(tomcat_cont,vers)
         sh("docker stop task4c && docker rm task4c")
     }    
 }
