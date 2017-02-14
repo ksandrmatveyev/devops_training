@@ -1,5 +1,5 @@
 #!groovy
-def git_repo = "ksandrmatveyev/gradle-training.git"
+def git_repo = "ksandrmatveyev/devops_training.git"
 def git_branch = "task4"
 def nexus_repo = "172.20.20.32:8081/nexus/content/repositories"
 def docker_reg = "172.20.20.31:5000"
