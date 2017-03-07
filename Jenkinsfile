@@ -1,7 +1,7 @@
 #!groovy
 def git_repo = "ksandrmatveyev/devops_training.git"
-def git_branch = "task4"
-def nexus_repo = "172.20.20.32:8081/nexus/content/repositories"
+def git_branch = "task7_reg"
+def nexus_repo = "172.20.20.31:8081/nexus/content/repositories"
 def docker_reg = "172.20.20.31:5000"
 def tomcat_cont = "172.20.20.35"
 def getVersion() {
@@ -48,17 +48,9 @@ node('master'){
         }    
     }
     stage('build_publish'){
+        pwd()
         sh("docker build --build-arg v_build=${vers} -t ${docker_reg}/task4:${vers} .")
         sh("docker push ${docker_reg}/task4:${vers}")
         
     }
-}
-node('docker_slave'){
-    stage('run_check'){
-        echo "slave"
-        sh("docker run -d --restart=always --name=task4c -p 8080:8080 ${docker_reg}/task4:${vers}")
-        sleep 60
-        depTom(tomcat_cont,vers)
-        sh("docker stop task4c && docker rm task4c")
-    }    
 }
