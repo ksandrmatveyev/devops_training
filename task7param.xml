@@ -46,12 +46,13 @@ return rolslist.execute().text.tokenize()</script>
           <choiceType>PT_SINGLE_SELECT</choiceType>
           <filterable>false</filterable>
         </org.biouno.unochoice.ChoiceParameter>
-        <com.seitenbau.jenkins.plugins.dynamicparameter.StringParameterDefinition plugin="dynamicparameter@0.2.0">
+        <com.seitenbau.jenkins.plugins.dynamicparameter.ChoiceParameterDefinition plugin="dynamicparameter@0.2.0">
           <name>VRS</name>
-          <description>Version</description>
-          <__uuid>73886317-9787-4e30-a5a1-5b714fd0b5b6</__uuid>
+          <description>Version from Nexus (updatable)</description>
+          <__uuid>371ccb0e-a8b8-4d3b-9843-a67236513b7d</__uuid>
           <__remote>false</__remote>
-          <__script></__script>
+          <__script>cnt = [ &apos;/bin/sh&apos;, &apos;-c&apos;, &quot;curl -s http://172.20.20.31:8081/nexus/content/repositories/training/task4/ | grep -oP &apos;(?&lt;=/\&quot;&gt;).*?(?=/&lt;/a&gt;)&apos;&quot; ].execute().text.tokenize()
+return cnt</__script>
           <__localBaseDirectory serialization="custom">
             <hudson.FilePath>
               <default>
@@ -63,7 +64,7 @@ return rolslist.execute().text.tokenize()</script>
           <__remoteBaseDirectory>dynamic_parameter_classpath</__remoteBaseDirectory>
           <__classPath></__classPath>
           <readonlyInputField>false</readonlyInputField>
-        </com.seitenbau.jenkins.plugins.dynamicparameter.StringParameterDefinition>
+        </com.seitenbau.jenkins.plugins.dynamicparameter.ChoiceParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
     <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
@@ -72,6 +73,17 @@ return rolslist.execute().text.tokenize()</script>
   </properties>
   <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.28">
     <script>#!groovy
+def updateEnv(filepath){
+        sh &quot;sed -i &apos;/\&quot;run_container\&quot;:/c\\\&quot;run_container\&quot;: \&quot;= $VRS\&quot;&apos; ${filepath}&quot;
+}
+
+def updateMeta(filepath){
+        sh &quot;sed -i \&quot;/version /c\\version \&apos;\&quot;$VRS\&quot;\&apos;\&quot; ${filepath}&quot;
+}
+
+def updateAttrib(filepath){
+        sh &quot;sed -i \&quot;/image_version/c\\default[&apos;image_version&apos;]=\&apos;\&quot;$VRS\&quot;\&apos;\&quot; ${filepath}&quot;
+}
 def chef_repo = &quot;/vagrant/chef-repo&quot;
 def chef_recipe = &quot;run_container&quot;
 def git_repo = &quot;ksandrmatveyev/devops_training.git&quot;
@@ -85,9 +97,12 @@ node(&apos;master&apos;){
         sh &quot;knife search \&quot;chef_environment:${ENVS} and role:${RLS}\&quot;&quot;
     }
     stage(&apos;Update Cookbook Files&apos;){
-        sh &quot;sed -i &apos;/\&quot;${chef_recipe}\&quot;:/c\\\&quot;${chef_recipe}\&quot;: \&quot;= $VRS\&quot;&apos; ${chef_repo}/environments/${ENVS}.json&quot;
-        sh &quot;sed -i \&quot;/version /c\\version \&apos;\&quot;$VRS\&quot;\&apos;\&quot; ${chef_repo}/cookbooks/${chef_recipe}/metadata.rb&quot;
-        sh &quot;sed -i \&quot;/image_version/c\\default[&apos;image_version&apos;]=\&apos;\&quot;$VRS\&quot;\&apos;\&quot; ${chef_repo}/cookbooks/${chef_recipe}/attributes/default.rb&quot;
+        updateEnv(&quot;${chef_repo}/environments/${ENVS}.json&quot;)
+        updateMeta(&quot;${chef_repo}/cookbooks/${chef_recipe}/metadata.rb&quot;)
+        updateAttrib(&quot;${chef_repo}/cookbooks/${chef_recipe}/attributes/default.rb&quot;)
+        //sh &quot;sed -i &apos;/\&quot;${chef_recipe}\&quot;:/c\\\&quot;${chef_recipe}\&quot;: \&quot;= $VRS\&quot;&apos; ${chef_repo}/environments/${ENVS}.json&quot;
+        //sh &quot;sed -i \&quot;/version /c\\version \&apos;\&quot;$VRS\&quot;\&apos;\&quot; ${chef_repo}/cookbooks/${chef_recipe}/metadata.rb&quot;
+        //sh &quot;sed -i \&quot;/image_version/c\\default[&apos;image_version&apos;]=\&apos;\&quot;$VRS\&quot;\&apos;\&quot; ${chef_repo}/cookbooks/${chef_recipe}/attributes/default.rb&quot;
         sh &quot;cat ${chef_repo}/environments/${ENVS}.json&quot;
         sh &quot;cat ${chef_repo}/cookbooks/${chef_recipe}/metadata.rb&quot;
         sh &quot;cat ${chef_repo}/cookbooks/${chef_recipe}/attributes/default.rb&quot;
