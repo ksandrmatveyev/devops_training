@@ -2,7 +2,7 @@
   "name": "development",
   "description": "The default Chef environment",
   "cookbook_versions": {
-"run_container": "= 4.3.4"
+"run_container": "= 4.3.5"
   },
   "json_class": "Chef::Environment",
   "chef_type": "environment",
